@@ -17,9 +17,9 @@ import org.json.JSONException
 import java.io.IOException
 import java.lang.ref.WeakReference
 import java.net.HttpURLConnection
-import java.util.ArrayList
+import java.util.*
 
-class MovieDetailPresenter(mView: MovieDetailMVP.RequiredViewOps) : MovieDetailMVP.PresenterOps{
+class MovieDetailPresenter(mView: MovieDetailMVP.RequiredViewOps) : MovieDetailMVP.PresenterOps {
 
     internal var errorMessage = ""
     internal var TAG = "MovieDetailPresenter"
@@ -43,7 +43,7 @@ class MovieDetailPresenter(mView: MovieDetailMVP.RequiredViewOps) : MovieDetailM
      * @param movieId
      */
     override fun getMovie(movieId: Int) {
-        Single.fromCallable{getMovieFromAPI(movieId)}
+        Single.fromCallable { getMovieFromAPI(movieId) }
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .doOnError { throwable -> Log.e(TAG, throwable.message) }
@@ -58,7 +58,7 @@ class MovieDetailPresenter(mView: MovieDetailMVP.RequiredViewOps) : MovieDetailM
                     }
 
                     override fun onError(e: Throwable) {
-                        Log.e(TAG,e.localizedMessage)
+                        Log.e(TAG, e.localizedMessage)
                         e.printStackTrace()
 
                     }
@@ -71,8 +71,8 @@ class MovieDetailPresenter(mView: MovieDetailMVP.RequiredViewOps) : MovieDetailM
      * @param movieId
      * @return arraylist of movies
      */
-    private fun getMovieFromAPI(movieId : Int) : ArrayList<Movie> {
-        Log.e(TAG,Thread.currentThread().toString())
+    private fun getMovieFromAPI(movieId: Int): ArrayList<Movie> {
+        Log.e(TAG, Thread.currentThread().toString())
 
         val urlIMDB = Constants.API_URL + "/" + movieId
         var movieList: ArrayList<Movie> = ArrayList()
@@ -112,7 +112,6 @@ class MovieDetailPresenter(mView: MovieDetailMVP.RequiredViewOps) : MovieDetailM
 
         return movieList
     }
-
 
 
 }

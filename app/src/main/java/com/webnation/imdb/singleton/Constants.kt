@@ -10,8 +10,6 @@ object Constants {
     //forming URL for REST call
     const val API_URL = "https://api.themoviedb.org/3/movie"
     const val IMAGE_URL = "https://image.tmdb.org/t/p/w300"
-    const val GET_METHOD = "GET"
-    const val POST_METHOD = "POST"
 
     //URL PARAMS
     const val PARAM_LANGUAGE = "language"

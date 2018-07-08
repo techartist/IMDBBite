@@ -17,7 +17,7 @@ interface MainMVP {
         fun showProgressDialog()
         fun dismissProgressDialog()
         fun setUpRecyclerView(movies: ArrayList<Movie>)
-        fun showError(responseCode : Int)
+        fun showError(responseCode: Int)
     }
 
     /**
@@ -26,11 +26,10 @@ interface MainMVP {
      */
     interface PresenterOps {
         fun onDestroy()
-        fun getMovies(type : String)
-        fun getTitleString(title : String) : String
+        fun getMovies(type: String)
+        fun getTitleString(title: String): String
 
     }
-
 
 
 }

@@ -27,7 +27,6 @@ class MovieTestGetSingle {
         assertEquals(movie[0].revenue, 485074690)
 
 
-
     }
 
 

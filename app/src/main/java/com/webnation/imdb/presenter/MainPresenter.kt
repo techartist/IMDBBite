@@ -29,6 +29,7 @@ class MainPresenter(mView: MainMVP.RequiredViewOps) : MainMVP.PresenterOps {
     private var errorMessage = ""
     internal var TAG = "MainPresenter"
     private val compositeDisposable = CompositeDisposable()
+
     // Presenter reference
     init {
         this.view = WeakReference(mView)
@@ -39,9 +40,9 @@ class MainPresenter(mView: MainMVP.RequiredViewOps) : MainMVP.PresenterOps {
      * does the background call to the API
      * @param type of movie, upcoming or now playing
      */
-    override fun getMovies(type : String) {
+    override fun getMovies(type: String) {
 
-        Single.fromCallable{getMoviesFromIMDB(type)}
+        Single.fromCallable { getMoviesFromIMDB(type) }
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .doOnError { throwable -> Log.e(TAG, throwable.message) }
@@ -61,7 +62,7 @@ class MainPresenter(mView: MainMVP.RequiredViewOps) : MainMVP.PresenterOps {
                     }
 
                     override fun onError(e: Throwable) {
-                        Log.e(TAG,e.localizedMessage)
+                        Log.e(TAG, e.localizedMessage)
                         e.printStackTrace()
                         view?.get()?.dismissProgressDialog()
                     }
@@ -77,7 +78,7 @@ class MainPresenter(mView: MainMVP.RequiredViewOps) : MainMVP.PresenterOps {
      * @param type gets the type of movies, in this case upcoming or now playing
      * @return arraylist of movies.
      */
-   private fun getMoviesFromIMDB(type : String) : ArrayList<Movie> {
+    private fun getMoviesFromIMDB(type: String): ArrayList<Movie> {
 
         val urlIMDB = Constants.API_URL + "/" + type
         var pageNumber = "1"
@@ -97,7 +98,7 @@ class MainPresenter(mView: MainMVP.RequiredViewOps) : MainMVP.PresenterOps {
             urlBuilder.addQueryParameter(Constants.PARAM_PAGE, pageNumber)
 
             val url = urlBuilder.build().toString()
-            Log.d(TAG,url)
+            Log.d(TAG, url)
 
             val request = Request.Builder()
                     .url(url)
@@ -159,7 +160,7 @@ class MainPresenter(mView: MainMVP.RequiredViewOps) : MainMVP.PresenterOps {
      * @return array list of all the movies.
      */
     private fun doHttpCode200(response: String): ArrayList<Movie>? {
-        var movieList : ArrayList<Movie>? = null
+        var movieList: ArrayList<Movie>? = null
 
         try {
             movieList = Movie.parseMovies(response)
@@ -218,14 +219,11 @@ class MainPresenter(mView: MainMVP.RequiredViewOps) : MainMVP.PresenterOps {
     }
 
 
-
     override fun onDestroy() {
         view = null
         compositeDisposable.dispose()
 
     }
-
-
 
 
 }

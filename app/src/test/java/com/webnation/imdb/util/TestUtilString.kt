@@ -1,9 +1,7 @@
 package com.webnation.imdb.util
 
 
-import java.io.File
 import java.io.IOException
-import java.io.InputStream
 import java.nio.charset.Charset
 
 class TestUtilString(nameOfResource: String) {
@@ -18,7 +16,7 @@ class TestUtilString(nameOfResource: String) {
         val q = javaClass.classLoader.getResourceAsStream(nameOfResource)
         var contents = ""
         try {
-           contents = q.readBytes().toString(Charset.defaultCharset())
+            contents = q.readBytes().toString(Charset.defaultCharset())
 
         } catch (e: IOException) {
             e.printStackTrace()

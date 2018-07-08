@@ -1,15 +1,8 @@
 package com.webnation.imdb.model
 
-import android.annotation.SuppressLint
 import android.util.Log
-
 import org.json.JSONException
 import org.json.JSONObject
-import java.io.BufferedReader
-import java.io.IOException
-import java.io.InputStreamReader
-import java.net.HttpURLConnection
-
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -24,7 +17,7 @@ class Movie : Comparable<Movie> {
     var voteCount: Int = 0
     var posterPath: String = ""
     private val simpleDateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-    private val simpleDateFormatDisplay = SimpleDateFormat("MMM dd yyyy",Locale.US)
+    private val simpleDateFormatDisplay = SimpleDateFormat("MMM dd yyyy", Locale.US)
     private var releaseDate: Date = Date()
     var overview = ""
     var budget = 0L
@@ -95,11 +88,11 @@ class Movie : Comparable<Movie> {
         /**
          * gets the error message
          */
-        fun doErrorCodes(response: String) : String {
-            var stringResult : String
+        fun doErrorCodes(response: String): String {
+            var stringResult: String
             try {
                 val jsonObjectRoot = JSONObject(response)
-                stringResult= jsonObjectRoot.getString(JSON_RESPONSE_ROOT_STATUS_MESSAGE)
+                stringResult = jsonObjectRoot.getString(JSON_RESPONSE_ROOT_STATUS_MESSAGE)
             } catch (e: JSONException) {
                 errorMessage = e.localizedMessage
                 stringResult = e.toString()
@@ -168,7 +161,7 @@ class Movie : Comparable<Movie> {
                 if (movieJSONObject.has(JSON_ROOT_BUDGET)) {
                     movie.budget = movieJSONObject.getLong(JSON_ROOT_BUDGET)
                 }
-                if (movieJSONObject.has (JSON_ROOT_REVENUE)) {
+                if (movieJSONObject.has(JSON_ROOT_REVENUE)) {
                     movie.revenue = movieJSONObject.getLong(JSON_ROOT_REVENUE)
                 }
             } catch (e: JSONException) {

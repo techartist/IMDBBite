@@ -12,6 +12,7 @@ class FormatNumberTest {
         val values = arrayOf("not available","$1K","$20K","$40M","$350M","$500B")
 
         assertNotNull(numbers)
+        assertNotNull(values)
         for (i in 0..numbers.size-1) {
             assertEquals(values[i], FormatNumbers.formatValue(numbers[i],"not available"))
 

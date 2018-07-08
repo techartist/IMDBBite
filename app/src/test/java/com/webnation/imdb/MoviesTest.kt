@@ -1,17 +1,13 @@
 package com.webnation.imdb
 
 import android.util.Log
-
 import com.webnation.imdb.model.Movie
 import com.webnation.imdb.util.TestUtilString
-
-import org.json.JSONException
-import org.junit.Test
-
-import java.util.ArrayList
-
 import junit.framework.Assert.assertEquals
 import junit.framework.Assert.assertNotNull
+import org.json.JSONException
+import org.junit.Test
+import java.util.*
 
 class MoviesTest {
 
@@ -28,7 +24,6 @@ class MoviesTest {
 
         assertEquals(movies[0].title, "Thor: Ragnarok")
         assertEquals(movies.size, 20)
-
 
     }
 

@@ -68,7 +68,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         nav_view.setNavigationItemSelectedListener(this)
 
-
         if (isConnectedOnline) {
             presenter.getMovies(type)
 
@@ -87,7 +86,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
 
-
     override fun onBackPressed() {
         val drawer = findViewById<View>(R.id.drawer_layout) as DrawerLayout
         if (drawer.isDrawerOpen(GravityCompat.START)) {
@@ -97,10 +95,44 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
     }
 
+    override fun onNavigationItemSelected(item: MenuItem): Boolean {
+        // Handle navigation view item clicks here.
+        val id = item.itemId
+        type = ""
+
+        if (isConnectedOnline) {
+
+            if (id == R.id.nav_upcoming) {
+                type = Constants.REQUEST_TYPE.UPCOMING.type
+
+            } else if (id == R.id.nav_now_playing) {
+                type = Constants.REQUEST_TYPE.NOW_PLAYING.type
+
+            }
+            presenter.getMovies(type)
+            actionBar?.subtitle = presenter.getTitleString(type) + " " + getString(R.string.movies_post_pend)
+
+        } else {
+            recyclerView?.visibility = View.GONE
+            text_view_network_not_available.visibility = View.VISIBLE
+        }
+
+
+        val drawer = findViewById<View>(R.id.drawer_layout) as DrawerLayout
+        drawer.closeDrawer(GravityCompat.START)
+        return true
+    }
+
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putCharSequence(KEY_INSTANCE_STATE_TYPE, type)
+    }
+
 
     ////////presenter methods
     /**
-     *
+     * displays errors from retrieving data from the API
      */
     override fun showError(responseCode: Int) {
         AlertDialog.Builder(this)
@@ -141,6 +173,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     /**
      * sets up the custom adapter now that we have the movie list and prepares the recycler view
+     * @param movies list of movies retrieved from the api
      */
     override fun setUpRecyclerView(movies : ArrayList<Movie>) {
         val customAdapter = CustomAdapter(this, movies)
@@ -167,6 +200,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     /**
      * determine if we have an active connection
+     * @return true if connected, false, otherwise.
      */
     private val isConnectedOnline: Boolean
         get() {
@@ -178,6 +212,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     /**
      * shows the detail activity for the movie
+     * @param movies - list of movies in the adapter
+     * @param position - position in adapter being clicked.
      */
     private fun showMovieDetailActivity(movies : ArrayList<Movie>, position : Int) {
         val intent = Intent(this@MainActivity, MovieDetailActivity::class.java)
@@ -188,44 +224,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
 
-    /**
-     * gets activities from depending on drawer selection.
-     */
-    override fun onNavigationItemSelected(item: MenuItem): Boolean {
-        // Handle navigation view item clicks here.
-        val id = item.itemId
-        type = ""
 
-        if (isConnectedOnline) {
-
-            if (id == R.id.nav_upcoming) {
-                type = Constants.REQUEST_TYPE.UPCOMING.type
-
-            } else if (id == R.id.nav_now_playing) {
-                type = Constants.REQUEST_TYPE.NOW_PLAYING.type
-
-            }
-            presenter.getMovies(type)
-            actionBar?.subtitle = presenter.getTitleString(type) + " " + getString(R.string.movies_post_pend)
-
-        } else {
-            recyclerView?.visibility = View.GONE
-            text_view_network_not_available.visibility = View.VISIBLE
-        }
-
-
-        val drawer = findViewById<View>(R.id.drawer_layout) as DrawerLayout
-        drawer.closeDrawer(GravityCompat.START)
-        return true
-    }
-
-    /**
-     * save in case of rotation.
-     */
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        outState.putCharSequence(KEY_INSTANCE_STATE_TYPE, type)
-    }
 
 
 

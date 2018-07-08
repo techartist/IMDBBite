@@ -1,7 +1,6 @@
 package com.webnation.imdb
 
 import android.annotation.SuppressLint
-import android.content.DialogInterface
 import android.os.Bundle
 import android.support.v7.app.ActionBar
 import android.support.v7.app.AlertDialog
@@ -12,7 +11,6 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.TextView
 import com.bumptech.glide.Glide
-import com.webnation.imdb.R.id.*
 import com.webnation.imdb.interfaces.MovieDetailMVP
 import com.webnation.imdb.model.Movie
 import com.webnation.imdb.presenter.MovieDetailPresenter
@@ -106,10 +104,10 @@ class MovieDetailActivity : AppCompatActivity(), MovieDetailMVP.RequiredViewOps 
             val defaultStringIfZero = resources.getString(R.string.defaultStringIfZero)
             val title = findViewById<TextView>(R.id.title) as TextView
             title.visibility = View.INVISIBLE
-            popularity.text = resources.getString(R.string.space_placeholder_double,movie.popularity)
-            vote_count.text = resources.getString(R.string.space_placeholder,movie.voteCount)
-            revenue.text = resources.getString(R.string.money_placeholder, FormatNumbers.formatValue(movie.revenue,defaultStringIfZero))
-            budget.text = resources.getString(R.string.money_placeholder, FormatNumbers.formatValue(movie.budget,defaultStringIfZero))
+            popularity.text = resources.getString(R.string.space_placeholder_double, movie.popularity)
+            vote_count.text = resources.getString(R.string.space_placeholder, movie.voteCount)
+            revenue.text = resources.getString(R.string.money_placeholder, FormatNumbers.formatValue(movie.revenue, defaultStringIfZero))
+            budget.text = resources.getString(R.string.money_placeholder, FormatNumbers.formatValue(movie.budget, defaultStringIfZero))
             overview.text = movie.overview
 
             release_date.text = movie.releaseDateDisplay
@@ -143,15 +141,12 @@ class MovieDetailActivity : AppCompatActivity(), MovieDetailMVP.RequiredViewOps 
      * As the name implies, shows alert dialgo, called from showError
      * @param message -- to be displayed
      */
-    private fun displayAlertMessage(message : String) {
+    private fun displayAlertMessage(message: String) {
         AlertDialog.Builder(this)
                 .setTitle(resources.getString(R.string.error_getting_movies))
                 .setMessage(message)
                 .setNeutralButton(resources.getString(R.string.ok), { dialog, id -> dialog.dismiss() }).create()
     }
-
-
-
 
 
 }
