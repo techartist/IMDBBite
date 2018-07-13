@@ -1,5 +1,6 @@
 package com.webnation.imdb.interfaces
 
+import android.content.Context
 import com.webnation.imdb.model.Movie
 
 /*
@@ -13,11 +14,12 @@ interface MainMVP {
      * Presenter -> View
      */
     interface RequiredViewOps {
-        fun setUpProgressDialog()
         fun showProgressDialog()
         fun dismissProgressDialog()
         fun setUpRecyclerView(movies: ArrayList<Movie>)
-        fun showError(responseCode: Int)
+        fun showError(responseCode: String)
+        fun showError(message : String, title : String?)
+        fun getContext() : Context
     }
 
     /**
@@ -27,8 +29,7 @@ interface MainMVP {
     interface PresenterOps {
         fun onDestroy()
         fun getMovies(type: String)
-        fun getTitleString(title: String): String
-
+        fun getIsConnected() : Boolean
     }
 
 

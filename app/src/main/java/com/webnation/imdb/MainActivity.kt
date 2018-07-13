@@ -2,11 +2,13 @@ package com.webnation.imdb
 
 import android.annotation.SuppressLint
 import android.app.ProgressDialog
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.net.ConnectivityManager
+import android.content.IntentFilter
 import android.os.Bundle
 import android.support.design.widget.NavigationView
+import android.support.v4.content.ContextCompat.startActivity
 import android.support.v4.view.GravityCompat
 import android.support.v4.widget.DrawerLayout
 import android.support.v7.app.ActionBar
@@ -17,11 +19,15 @@ import android.support.v7.widget.LinearLayoutManager
 import android.util.Log
 import android.view.MenuItem
 import android.view.View
+import com.webnation.imdb.R.id.recyclerView
 import com.webnation.imdb.adapters.CustomAdapter
 import com.webnation.imdb.interfaces.MainMVP
 import com.webnation.imdb.model.Movie
 import com.webnation.imdb.presenter.MainPresenter
+import com.webnation.imdb.receivers.NetworkAvailableReceiver
 import com.webnation.imdb.singleton.Constants
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.content_main.*
 import kotlinx.android.synthetic.main.toolbar.*
@@ -29,22 +35,27 @@ import kotlinx.android.synthetic.main.toolbar.*
 
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener, MainMVP.RequiredViewOps {
 
-
-    private val TAG = "MainActivity"
-    private var actionBar: ActionBar? = null
-    private var type: String = ""
-    private val KEY_INSTANCE_STATE_TYPE = "type"
-    private var presenter = MainPresenter(this)
-    private lateinit var progressDialog : ProgressDialog
+    private val TAG = "MainActivity"                //Tag for Log entries
+    private var actionBar: ActionBar? = null        //Action bar
+    private var type: String = ""                   //type of movie to be passed as part of URL
+    private var friendlyName = ""                   //friendly name of type of moview
+    private val KEY_INSTANCE_STATE_TYPE = "type"    //key to get save instance state
+    lateinit var presenter : MainPresenter          // presenter
+    private lateinit var progressDialog : ProgressDialog    //shows dialog for when the recycler view is loading
+    private val networkAvailableReceiver = NetworkAvailableReceiver() //the receiver that listens for changes on network.
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
         super.onCreate(savedInstanceState)
-        type = if (savedInstanceState != null) {
-            savedInstanceState.getString(KEY_INSTANCE_STATE_TYPE)
+        if (savedInstanceState != null) {
+            type = savedInstanceState.getString(KEY_INSTANCE_STATE_TYPE)
+            if (type.equals(Constants.REQUEST_TYPE.UPCOMING.type)) friendlyName = Constants.REQUEST_TYPE.UPCOMING.getFriendlyName()
+            else {friendlyName = Constants.REQUEST_TYPE.NOW_PLAYING.getFriendlyName()}
         } else {
-            Constants.REQUEST_TYPE.UPCOMING.type
+            type = Constants.REQUEST_TYPE.UPCOMING.type
+            friendlyName = Constants.REQUEST_TYPE.UPCOMING.getFriendlyName()
         }
+        friendlyName = Constants.REQUEST_TYPE.UPCOMING.getFriendlyName()
         setContentView(R.layout.activity_main)
 
         setSupportActionBar(toolbar)
@@ -54,8 +65,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             assert(actionBar != null)
             actionBar?.setDisplayHomeAsUpEnabled(true)
             actionBar?.setHomeButtonEnabled(true)
-            actionBar?.subtitle = (presenter.getTitleString(type)
-                    + " " + getString(R.string.movies_post_pend))
+            actionBar?.subtitle = friendlyName + " " + getString(R.string.movies_post_pend)
             actionBar?.setDisplayShowTitleEnabled(true)
         } catch (ignored: Exception) {
             Log.e(TAG, ignored.toString())
@@ -67,16 +77,62 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         toggle.syncState()
 
         nav_view.setNavigationItemSelectedListener(this)
+        presenter = MainPresenter(this, Schedulers.io(), AndroidSchedulers.mainThread()) //for testing
+        setUpProgressDialog()
 
-        if (isConnectedOnline) {
+        if (presenter.getIsConnected()) {
             presenter.getMovies(type)
 
         } else {
-            text_view_network_not_available.visibility = View.VISIBLE
+            showError(resources.getString(R.string.network_not_available),resources.getString(R.string.network_not_available_title))
             recyclerView.visibility = View.GONE
         }
     }
 
+    /**
+     * this receive receives intents from the broadcast receiver that tests to see if
+     * the network is connected.
+     */
+    private val receiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val extras = intent.extras
+
+            if (extras != null && extras.getBoolean(Constants.KEY_CONNECTED,false)) {
+                if (!(recyclerView.visibility == View.VISIBLE)) {
+                    presenter.getMovies(type)
+                }
+            } else {
+                showError(resources.getString(R.string.network_not_available),resources.getString(R.string.network_not_available_title))
+                recyclerView.visibility = View.GONE
+            }
+        }
+    }
+
+
+    /**
+     * register the receiver to receive intents from our broadcast receiver
+     */
+    override fun onStart() {
+        super.onStart()
+        val filterConnectivityFilter = IntentFilter("android.net.conn.CONNECTIVITY_CHANGE")
+        registerReceiver(networkAvailableReceiver,filterConnectivityFilter)
+        val filter = IntentFilter("com.webnation.imdb.MainActivity");
+        registerReceiver(receiver, filter)
+
+    }
+
+    /**
+     * unregister the recievers.
+     */
+    override fun onStop() {
+        super.onStop()
+        unregisterReceiver(receiver)
+        unregisterReceiver(networkAvailableReceiver)
+    }
+
+    /**
+     * clean up progress dialogs, call presenter destroy
+     */
     override fun onDestroy() {
         super.onDestroy()
         if (progressDialog.isShowing) {
@@ -85,7 +141,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         presenter.onDestroy()
     }
 
-
+    /**
+     * handle presses by user, close drawer if open
+     */
     override fun onBackPressed() {
         val drawer = findViewById<View>(R.id.drawer_layout) as DrawerLayout
         if (drawer.isDrawerOpen(GravityCompat.START)) {
@@ -95,12 +153,15 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
     }
 
+    /**
+     * handle navigation in the drawer
+     */
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         // Handle navigation view item clicks here.
         val id = item.itemId
         type = ""
 
-        if (isConnectedOnline) {
+        if (presenter.isConnectedOnline) {
 
             if (id == R.id.nav_upcoming) {
                 type = Constants.REQUEST_TYPE.UPCOMING.type
@@ -110,43 +171,55 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
             }
             presenter.getMovies(type)
-            actionBar?.subtitle = presenter.getTitleString(type) + " " + getString(R.string.movies_post_pend)
+            actionBar?.subtitle = friendlyName + " " + getString(R.string.movies_post_pend)
 
         } else {
-            recyclerView?.visibility = View.GONE
-            text_view_network_not_available.visibility = View.VISIBLE
-        }
 
+        }
 
         val drawer = findViewById<View>(R.id.drawer_layout) as DrawerLayout
         drawer.closeDrawer(GravityCompat.START)
         return true
     }
 
-
+    /**
+     * save instance state on rotation
+     */
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putCharSequence(KEY_INSTANCE_STATE_TYPE, type)
     }
 
-
-    ////////presenter methods
+    //////////////////////presenter methods
     /**
      * displays errors from retrieving data from the API
      */
-    override fun showError(responseCode: Int) {
+    override fun showError(responseCode: String) {
         AlertDialog.Builder(this)
                 .setTitle(resources.getString(R.string.error_getting_movies))
-                .setMessage(resources.getString(R.string.unspecified_error) + responseCode)
-                .setNeutralButton(resources.getString(R.string.ok), { dialog, id -> dialog.dismiss() }).create()
+                .setMessage(resources.getString(R.string.unspecified_error) + " " + responseCode)
+                .setNeutralButton(resources.getString(R.string.ok)) { dialog, _ -> dialog.dismiss() }.create().show()
+    }
+
+    /**
+     * general purpose other messages
+     */
+    override fun showError(message: String, title : String?) {
+        var titleLocal = title
+        if (titleLocal == null) {
+            titleLocal = resources.getString(R.string.error)
+        }
+        AlertDialog.Builder(this)
+                .setTitle(titleLocal)
+                .setMessage(message)
+                .setNeutralButton(resources.getString(R.string.ok)) { dialog, _ -> dialog.dismiss() }.create().show()
     }
 
     /**
      * gets the progress dialog going here.  I'm using a progress dialog because even though it's deprecated, I like it.
      */
-    @SuppressLint
-    override fun setUpProgressDialog() {
-
+    @SuppressLint("ProgressDialog")
+    fun setUpProgressDialog() {
         progressDialog = ProgressDialog(this)
         progressDialog.setMessage(getResources().getString(R.string.progress_dialog_message))
         progressDialog.max = 100
@@ -159,7 +232,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
      * As the name implies, shows the progress dialog
      */
     override fun showProgressDialog() {
-        progressDialog.show()
+        if (!progressDialog.isShowing) {
+            progressDialog.show()
+        }
     }
 
     /**
@@ -189,26 +264,17 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 Log.d(TAG, "onItemLongClick pos = $position")
             }
         })
-        val layoutManager = LinearLayoutManager(this)
-        recyclerView.layoutManager = layoutManager
+
+        recyclerView.layoutManager = LinearLayoutManager(this ,LinearLayoutManager.VERTICAL ,false)
         recyclerView.adapter = customAdapter
+        recyclerView.visibility = View.VISIBLE
 
     }
 
-    //////end of presenter methods
-
-
-    /**
-     * determine if we have an active connection
-     * @return true if connected, false, otherwise.
-     */
-    private val isConnectedOnline: Boolean
-        get() {
-            val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-            val networkInfo = connectivityManager.activeNetworkInfo
-            return networkInfo != null && networkInfo.isAvailable
-        }
-
+    override fun getContext(): Context {
+        return this
+    }
+    ////////////////////end of presenter methods
 
     /**
      * shows the detail activity for the movie
@@ -220,16 +286,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val movie = movies[position]
         intent.putExtra(Constants.KEY_MOVIE_ID, movie.id)
         startActivity(intent)
-
     }
-
-
-
-
-
-
-
-
-
 
 }

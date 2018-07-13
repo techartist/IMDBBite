@@ -7,6 +7,7 @@
     <string name="action_settings">Settings</string>
     <string name="ok">OK</string>
     <string name="error_getting_movies">Error Getting Movies</string>
+    <string name="network_not_available_title">Network Not Available</string>
     <string name="unspecified_error">Unspecified error, response code: </string>
     <string name="title_activity_main2">Main2Activity</string>
     <string name="drawer_title">Select Type Of Movie</string>
@@ -23,13 +24,15 @@
     <string name="title_notifications">Notifications</string>
     <string name="upcoming">Upcoming</string>
     <string name="now_playing">Now Playing</string>
-    <string name="space_placeholder_double"> %f</string>
-    <string name="space_placeholder"> %d</string>
-    <string name="money_placeholder"> %s</string>
+    <string name="space_placeholder_double">%-4f</string>
+    <string name="space_placeholder">%-4d</string>
+    <string name="money_placeholder">%-4s</string>
     <string name="defaultStringIfZero"> not available</string>
+    <string name="error">Error</string>
 
     <!--Progress dialog-->
     <string name="progress_dialog_message">Loading Movie List..</string>
     <string name="progress_dialog_message_loading_movie">Loading Movie..</string>
+    <string name="main_navigation_heading">main navigation_heading</string>
 
 </resources>

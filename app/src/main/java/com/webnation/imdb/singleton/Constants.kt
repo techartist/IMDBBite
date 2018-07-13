@@ -17,18 +17,17 @@ object Constants {
     const val PARAM_PAGE = "page"
     const val PARAM_API_KEY = "api_key"
 
-
     //Pass Around Extra
     const val KEY_MOVIE_ID = "movie_id"
+    const val KEY_CONNECTED = "connected"
 
+    enum class REQUEST_TYPE constructor(val type: String, val friendly_name : String) {
+        UPCOMING("upcoming","Upcoming"),
+        NOW_PLAYING("now_playing","Now Playing");
 
-    enum class REQUEST_TYPE constructor(val type: String) {
-        UPCOMING("upcoming"),
-        NOW_PLAYING("now_playing")
+        fun getFriendlyName() : String {return friendly_name}
+
 
     }
-
-
-
 
 }

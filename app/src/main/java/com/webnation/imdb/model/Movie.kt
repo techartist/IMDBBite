@@ -1,92 +1,47 @@
 package com.webnation.imdb.model
 
 import android.util.Log
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import org.json.JSONException
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.*
 
 
-class Movie : Comparable<Movie> {
+data class Movie(
+        var id: Int,                    //movieId
+        var title: String,              //movie Title
+        var release_date: String,       //release date of movie
+        var popularity: Double,         //popularity
+        var vote_count: Int = 0,        //vote count by IMDB users
+        var poster_path: String = "")   //url to poster graphic
+{
 
-
-    var id: Int = 0
-    var title = ""
-    private var releaseDateString = ""
-    var popularity: Double = 0.toDouble()
-    var voteCount: Int = 0
-    var posterPath: String = ""
-    private val simpleDateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-    private val simpleDateFormatDisplay = SimpleDateFormat("MMM dd yyyy", Locale.US)
-    private var releaseDate: Date = Date()
-    var overview = ""
-    var budget = 0L
-    var revenue = 0L
-
-    constructor(id: Int, title: String, release_date: String, popularity: Float, vote_count: Int, poster_path: String) {
-        this.id = id
-        this.title = title
-        this.releaseDateString = release_date
-        this.popularity = popularity.toDouble()
-        this.voteCount = vote_count
-        this.posterPath = poster_path
-    }
-
-    constructor()
-
-
+    var overview = ""                       //short snopsis of movie
+    var budget = 0L                         //budget, in US dollars
+    var revenue = 0L                        //revenue to date in US dollars
     val releaseDateDisplay: String
-        get() = simpleDateFormatDisplay.format(releaseDate)
+        get() = simpleDateFormatDisplay.format(releaseDate) //display of release date
 
 
-    /**
-     * parses the release date
-     * @param release_date date
-     */
-    fun setReleaseDate(release_date: String) {
-        this.releaseDateString = release_date
-        try {
-            releaseDate = simpleDateFormat.parse(release_date)
+    private val simpleDateFormatDisplay = SimpleDateFormat("MMM dd yyyy", Locale.US)  //Date display format
+    private var releaseDate: Date = Date()  // release date Date object
 
-
-        } catch (e: Exception) {
-            Log.e("DateFormatException", e.toString())
-        }
-
-    }
-
-
-    /**
-     * sort movies by date
-     * @param movie to compare
-     * @return
-     */
-    override fun compareTo(movie: Movie): Int {
-        return movie.releaseDate.compareTo(movie.releaseDate)
-    }
-
+    constructor() : this(0, "", "", 0.0, 0, "")
 
     /**
      * provides all the "static" methods
      */
     companion object {
-        private const val JSON_ROOT_POPULARITY = "popularity"
-        private const val JSON_ROOT_ID = "id"
-        private const val JSON_ROOT_TITLE = "title"
-        private const val JSON_ROOT_POSTER_PATH = "poster_path"
-        private const val JSON_ROOT_VOTE_COUNT = "vote_count"
-        private const val JSON_ROOT_RELEASE_DATE = "release_date"
-        private const val JSON_ROOT_OVERVIEW = "overview"
-        private const val JSON_ROOT_REVENUE = "revenue"
-        private const val JSON_ROOT_BUDGET = "budget"
-        private const val JSON_ROOT_NAME = "results"
-        private const val JSON_RESPONSE_ROOT_STATUS_MESSAGE = "status_message"
+        private const val JSON_RESPONSE_ROOT_STATUS_MESSAGE = "status_message" //get the status message of the call
         var errorMessage = ""
             private set
 
-
         /**
          * gets the error message
+         * @param response - raw response from the API
+         * @return error codes if there are any
          */
         fun doErrorCodes(response: String): String {
             var stringResult: String
@@ -104,72 +59,30 @@ class Movie : Comparable<Movie> {
 
         /**
          * parses many movies
-         * @param inputStreamString
+         * @param inputStreamString //raw response from the API
          * @return arraylist of movies
          */
-        @Throws(JSONException::class)
         fun parseMovies(inputStreamString: String): ArrayList<Movie> {
-            val arrayListMovies = ArrayList<Movie>()
-
-            val jsonObjectRoot = JSONObject(inputStreamString)
-            val jsonArrayMovies = jsonObjectRoot.getJSONArray(JSON_ROOT_NAME)
-
-            for (i in 0 until jsonArrayMovies.length()) {
-                val movieJSONObject = jsonArrayMovies.getJSONObject(i)
-                val movie = createMovieFromJSON(movieJSONObject)
-                arrayListMovies.add(movie)
-            }
-
-
-            return arrayListMovies
+            val gson = Gson()
+            val movieResponseType = object : TypeToken<MovieResponse>() {
+            }.getType()
+            val jsonMovieResponse = gson.fromJson<MovieResponse>(inputStreamString,movieResponseType)
+            return jsonMovieResponse.results
         }
 
         /**
          * parses a single movie
-         * @param inputStreamString
+         * @param inputStreamString //raw response from the API
          * @return arraylist of movies
          */
-        @Throws(JSONException::class)
         fun parseMovie(inputStreamString: String): ArrayList<Movie> {
             val arrayListMovies = ArrayList<Movie>()
-
-            val jsonObjectRoot = JSONObject(inputStreamString)
-            val movie = createMovieFromJSON(jsonObjectRoot)
-            arrayListMovies.add(movie)
-
-
+            val gson = Gson()
+            val movieResponseType = object : TypeToken<Movie>() {
+            }.getType()
+            val jsonMovieResponse = gson.fromJson<Movie>(inputStreamString,movieResponseType)
+            arrayListMovies.add(jsonMovieResponse)
             return arrayListMovies
-        }
-
-        /**
-         * As the name implies, gets the movie object from the Json
-         * @param movieJSONObject
-         * @return movie
-         */
-        @Throws(JSONException::class)
-        private fun createMovieFromJSON(movieJSONObject: JSONObject): Movie {
-            val movie = Movie()
-
-            try {
-                movie.title = movieJSONObject.getString(JSON_ROOT_TITLE)
-                movie.setReleaseDate(movieJSONObject.getString(JSON_ROOT_RELEASE_DATE))
-                movie.id = movieJSONObject.getInt(JSON_ROOT_ID)
-                movie.posterPath = movieJSONObject.getString(JSON_ROOT_POSTER_PATH)
-                movie.voteCount = movieJSONObject.getInt(JSON_ROOT_VOTE_COUNT)
-                movie.popularity = movieJSONObject.getDouble(JSON_ROOT_POPULARITY)
-                movie.overview = movieJSONObject.getString(JSON_ROOT_OVERVIEW)
-                if (movieJSONObject.has(JSON_ROOT_BUDGET)) {
-                    movie.budget = movieJSONObject.getLong(JSON_ROOT_BUDGET)
-                }
-                if (movieJSONObject.has(JSON_ROOT_REVENUE)) {
-                    movie.revenue = movieJSONObject.getLong(JSON_ROOT_REVENUE)
-                }
-            } catch (e: JSONException) {
-                e.printStackTrace()
-                errorMessage = e.localizedMessage
-            }
-
-            return movie
         }
 
     }

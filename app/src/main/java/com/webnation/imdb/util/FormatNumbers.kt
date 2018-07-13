@@ -4,12 +4,12 @@ package com.webnation.imdb.util
  * A class to prettify the numbers returned from the API
  */
 object FormatNumbers {
-    private const val THOU = 1000L
-    private const val MILL = 1000000L
-    private const val BILL = 1000000000L
-    private const val TRIL = 1000000000000L
-    private const val QUAD = 1000000000000000L
-    private const val QUIN = 1000000000000000000L
+    private const val THOU = 1000L                  //thousand
+    private const val MILL = 1000000L               //million
+    private const val BILL = 1000000000L            //billion
+    private const val TRIL = 1000000000000L         //trillion
+    private const val QUAD = 1000000000000000L      //quadrillion
+    private const val QUIN = 1000000000000000000L   //quintilliom
 
     /**
      * determines the value and then formats

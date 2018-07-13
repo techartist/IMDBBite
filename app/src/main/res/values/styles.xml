@@ -24,4 +24,5 @@
         <item name="android:textSize">@dimen/textsize_movie_detail_view</item>
     </style>
 
+
 </resources>

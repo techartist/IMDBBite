@@ -1,75 +1,97 @@
 package com.webnation.imdb.presenter
 
+import android.content.Context
+import android.net.ConnectivityManager
+import android.support.annotation.VisibleForTesting
 import android.util.Log
 import com.squareup.okhttp.HttpUrl
 import com.squareup.okhttp.OkHttpClient
 import com.squareup.okhttp.Request
+import com.webnation.imdb.R
 import com.webnation.imdb.interfaces.MainMVP
 import com.webnation.imdb.model.Movie
 import com.webnation.imdb.singleton.Constants
+import com.webnation.imdb.util.Network
+import io.reactivex.Scheduler
 import io.reactivex.Single
 import io.reactivex.SingleObserver
-import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.disposables.Disposable
-import io.reactivex.schedulers.Schedulers
 import org.json.JSONException
 import org.json.JSONObject
 import java.lang.ref.WeakReference
 import java.net.HttpURLConnection
-import java.util.*
+import kotlin.collections.ArrayList
 
 
-class MainPresenter(mView: MainMVP.RequiredViewOps) : MainMVP.PresenterOps {
+open class MainPresenter(mView: MainMVP.RequiredViewOps, schedulersIo : Scheduler, androidMainThreadScheduler: Scheduler) : MainMVP.PresenterOps {
 
     // Layer View reference
     private var view: WeakReference<MainMVP.RequiredViewOps>? = null
 
-    private val JSON_ROOT_TOTAL_PAGES = "total_pages"
-    private var errorMessage = ""
-    internal var TAG = "MainPresenter"
-    private val compositeDisposable = CompositeDisposable()
+    private val JSON_ROOT_TOTAL_PAGES = "total_pages"       //JSON root
+    private var errorMessage = ""                           //error message to give to the alert dialog
+    internal var TAG = "MainPresenter"                      //for Log entries
+    private val compositeDisposable = CompositeDisposable() //for the disposable rxjava
+    var schedulersIo : Scheduler                   //the thread for the network call
+    var androidMainThreadScheduler: Scheduler      //AndroidSchedules main thread
 
     // Presenter reference
     init {
         this.view = WeakReference(mView)
+        this.schedulersIo = schedulersIo
+        this.androidMainThreadScheduler = androidMainThreadScheduler
+
     }
 
+    /**
+     * used so we can send in our own observer from the unit tests
+     */
+    private var singleObserverPresenter = object : SingleObserver<ArrayList<Movie>> {
+        override fun onSuccess(t: ArrayList<Movie>) {
+            if (!t.isEmpty()) {
+                view?.get()?.setUpRecyclerView(t)
+            }
+            view?.get()?.dismissProgressDialog()
+        }
+
+        override fun onSubscribe(d: Disposable) {
+            compositeDisposable.add(d)
+            view?.get()?.showProgressDialog()
+        }
+
+        override fun onError(e: Throwable) {
+            Log.e(TAG, e.localizedMessage)
+            e.printStackTrace()
+            view?.get()?.dismissProgressDialog()
+        }
+    }
+
+    /**
+     * called from activity
+     * @param type - String of type
+     */
+    override fun getMovies(type : String) {
+        getMovies(type,null)
+    }
 
     /**
      * does the background call to the API
      * @param type of movie, upcoming or now playing
+     * @param singleObserver< - the single observer we are subscribing with
      */
-    override fun getMovies(type: String) {
+    @VisibleForTesting
+    fun getMovies(type: String, singleObserver : SingleObserver<ArrayList<Movie>>? ) {
+        var singleObserverPresenterLocal  = singleObserver
+        if (singleObserverPresenterLocal == null) {
+            singleObserverPresenterLocal = singleObserverPresenter
+        }
 
         Single.fromCallable { getMoviesFromIMDB(type) }
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeOn(schedulersIo)
+                .observeOn(androidMainThreadScheduler)
                 .doOnError { throwable -> Log.e(TAG, throwable.message) }
-                .unsubscribeOn(Schedulers.io())
-                .subscribe(object : SingleObserver<ArrayList<Movie>> {
-                    override fun onSuccess(t: ArrayList<Movie>) {
-                        if (!t.isEmpty()) {
-                            view?.get()?.setUpRecyclerView(t)
-                        }
-                        view?.get()?.dismissProgressDialog()
-                    }
-
-                    override fun onSubscribe(d: Disposable) {
-                        compositeDisposable.add(d)
-                        view?.get()?.setUpProgressDialog()
-                        view?.get()?.showProgressDialog()
-                    }
-
-                    override fun onError(e: Throwable) {
-                        Log.e(TAG, e.localizedMessage)
-                        e.printStackTrace()
-                        view?.get()?.dismissProgressDialog()
-                    }
-
-                })
-
-
+                .subscribe(singleObserverPresenterLocal)
     }
 
 
@@ -78,7 +100,8 @@ class MainPresenter(mView: MainMVP.RequiredViewOps) : MainMVP.PresenterOps {
      * @param type gets the type of movies, in this case upcoming or now playing
      * @return arraylist of movies.
      */
-    private fun getMoviesFromIMDB(type: String): ArrayList<Movie> {
+    @VisibleForTesting
+    open fun getMoviesFromIMDB(type: String): ArrayList<Movie> {
 
         val urlIMDB = Constants.API_URL + "/" + type
         var pageNumber = "1"
@@ -118,12 +141,12 @@ class MainPresenter(mView: MainMVP.RequiredViewOps) : MainMVP.PresenterOps {
                 }
                 HttpURLConnection.HTTP_NOT_FOUND, HttpURLConnection.HTTP_UNAUTHORIZED -> {
                     errorMessage = Movie.doErrorCodes(stringBuilder)
+                    view?.get()?.showError(response.code().toString())
                     movieList.clear()
-                    view?.get()?.showError(response.code())
-
                 }
                 else -> {
-                    view?.get()?.showError(response.code())
+                    errorMessage = Movie.doErrorCodes(stringBuilder)
+                    view?.get()?.showError(errorMessage,null)
                     movieList.clear()
                 }
             }
@@ -141,7 +164,8 @@ class MainPresenter(mView: MainMVP.RequiredViewOps) : MainMVP.PresenterOps {
      * @param response from the server
      * @return number of pages.
      */
-    private fun getNumberOfPages(response: String): Int {
+    @VisibleForTesting
+    fun getNumberOfPages(response: String): Int {
         var totalNumberOfPages = 0
         try {
             val jsonObjectRoot = JSONObject(response)
@@ -159,7 +183,8 @@ class MainPresenter(mView: MainMVP.RequiredViewOps) : MainMVP.PresenterOps {
      * @param response from server
      * @return array list of all the movies.
      */
-    private fun doHttpCode200(response: String): ArrayList<Movie>? {
+    @VisibleForTesting
+    fun doHttpCode200(response: String): ArrayList<Movie>? {
         var movieList: ArrayList<Movie>? = null
 
         try {
@@ -170,59 +195,31 @@ class MainPresenter(mView: MainMVP.RequiredViewOps) : MainMVP.PresenterOps {
             Log.d("demo", e.localizedMessage)
             e.printStackTrace()
             errorMessage = e.toString()
+            view?.get()?.showError(e.localizedMessage,null)
         }
         return movieList
-
-
     }
 
     /**
-     * parses out the title from the String to handle unique captialization
-     * @param title in raw form
-     * @return nicely formatted title
+     * determine if we have an active connection
+     * @return true if connected, false, otherwise.
      */
-    override fun getTitleString(title: String): String {
-        var string = title
-        val actionableDelimiters = " '-/"
-        string = string.replace("_", " ")
-        var sb = StringBuilder()
-        if (!string.isEmpty()) {
-            var capitaliseNext = true
-            for (c in string.toCharArray()) {
-                var char: Char
-                char = if (capitaliseNext) Character.toUpperCase(c) else Character.toLowerCase(c)
-                sb.append(char)
-                capitaliseNext = actionableDelimiters.indexOf(char) >= 0
-            }
-            string = sb.toString()
-            if (string.startsWith("Mc") && string.length > 2) {
-                val char = string[2]
-                if (actionableDelimiters.indexOf(char) < 0) {
-                    sb = StringBuilder()
-                    sb.append(string.substring(0, 2))
-                    sb.append(string.substring(2, 3).toUpperCase())
-                    sb.append(string.substring(3))
-                    string = sb.toString()
-                }
-            } else if (string.startsWith("Mac") && string.length > 3) {
-                val c = string[3]
-                if (actionableDelimiters.indexOf(c) < 0) {
-                    sb = StringBuilder()
-                    sb.append(string.substring(0, 3))
-                    sb.append(string.substring(3, 4).toUpperCase())
-                    sb.append(string.substring(4))
-                    string = sb.toString()
-                }
-            }
+    val isConnectedOnline: Boolean
+        get() {
+            return Network.isNetworkAvailble(view?.get()?.getContext())
         }
-        return string
-    }
 
-
+    /**
+     * cleans up the disposables and the view.
+     */
     override fun onDestroy() {
         view = null
         compositeDisposable.dispose()
 
+    }
+
+    override fun getIsConnected(): Boolean {
+        return isConnectedOnline
     }
 
 
