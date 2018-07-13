@@ -46,8 +46,7 @@ class MovieDetailPresenterTest {
      */
     @Test
     fun loadItems_WhenDataIsAvailable_ShouldUpdateViews() {
-        val testobserver = TestObserver<ArrayList<Movie>>();
-        spy?.getMovie(movieId,testobserver)
+        spy?.getMovie(movieId)
         Mockito.verify(mockView).setMoviesActivityUIElements(any())
     }
 
@@ -57,8 +56,8 @@ class MovieDetailPresenterTest {
      */
     @Test
     fun testgetMovieNoError() {
-        val testobserver = TestObserver<ArrayList<Movie>>();
-        spy?.getMovie(movieId,testobserver);
+        val testobserver = TestObserver<ArrayList<Movie>>()
+        spy?.getMovie(movieId,testobserver)
         testobserver.assertNoErrors()
     }
 
